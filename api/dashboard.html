@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TCG Tracker — Admin Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f0f13;
+      --surface: #17171e;
+      --surface2: #1e1e28;
+      --border: rgba(255,255,255,0.08);
+      --text: #e8e6f0;
+      --muted: #7a788a;
+      --accent: #7c6af7;
+      --accent2: #5fd4a4;
+      --warn: #f4a042;
+      --danger: #f06060;
+      --in-stock: #5fd4a4;
+      --out-stock: #f06060;
+      --font: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --sans: system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 32px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      background: var(--accent2);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .status-label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 32px;
+    }
+
+    /* ── Stat cards ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      font-family: var(--font);
+      color: var(--text);
+    }
+
+    .stat-value.green { color: var(--in-stock); }
+    .stat-value.purple { color: var(--accent); }
+
+    .stat-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* ── Section headers ── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    /* ── Filters ── */
+    .filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+    .filter-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* ── Stock table ── */
+    .stock-grid {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+
+    .stock-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .stock-table th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      font-weight: 500;
+    }
+
+    .stock-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .stock-table tr:last-child td { border-bottom: none; }
+    .stock-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge.in-stock {
+      background: rgba(95,212,164,0.15);
+      color: var(--in-stock);
+    }
+
+    .badge.out-stock {
+      background: rgba(240,96,96,0.15);
+      color: var(--out-stock);
+    }
+
+    .badge.online {
+      background: rgba(124,106,247,0.15);
+      color: var(--accent);
+    }
+
+    .badge.in-store {
+      background: rgba(244,160,66,0.15);
+      color: var(--warn);
+    }
+
+    .game-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .game-tag.pokemon  { background: rgba(255,204,0,0.15); color: #e6b800; }
+    .game-tag.onepiece { background: rgba(255,80,80,0.15);  color: #e84040; }
+    .game-tag.yugioh   { background: rgba(124,106,247,0.15); color: var(--accent); }
+
+    .retailer-logo {
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .price {
+      font-family: var(--font);
+      font-size: 13px;
+      color: var(--accent2);
+    }
+
+    .link-btn {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 12px;
+      opacity: 0.8;
+      transition: opacity 0.15s;
+    }
+    .link-btn:hover { opacity: 1; }
+
+    /* ── Bottom 2-col layout ── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* ── Log panel ── */
+    .log-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .log-list {
+      list-style: none;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+
+    .log-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .log-item:last-child { border-bottom: none; }
+
+    .log-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+
+    .log-dot.success { background: var(--in-stock); }
+    .log-dot.error   { background: var(--danger); }
+    .log-dot.blocked { background: var(--warn); }
+
+    .log-time { color: var(--muted); flex-shrink: 0; font-family: var(--font); font-size: 10px; }
+    .log-msg  { color: var(--text); flex: 1; }
+
+    /* ── Products panel ── */
+    .product-list {
+      list-style: none;
+    }
+
+    .product-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .product-item:last-child { border-bottom: none; }
+    .product-item--paused { opacity: 0.55; }
+    .product-item-body { flex: 1; min-width: 0; }
+    .product-item-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .product-search-term {
+      font-size: 11px;
+      font-family: var(--font);
+      color: var(--muted);
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .product-item-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .product-remove-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+      font-family: var(--font);
+      color: var(--danger);
+      background: transparent;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .product-remove-btn:hover {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: var(--danger);
+    }
+
+    .product-remove-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .stock-section-title-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .clear-stock-btn {
+      padding: 6px 12px;
+      font-size: 11px;
+      font-family: var(--font);
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .clear-stock-btn:hover:not(:disabled) {
+      color: var(--danger);
+      border-color: rgba(240, 96, 96, 0.45);
+      background: rgba(240, 96, 96, 0.08);
+    }
+
+    .clear-stock-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* ── Scrape button ── */
+    .scrape-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 20px;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .scrape-btn:hover { opacity: 0.85; }
+    .scrape-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .empty-icon { font-size: 32px; margin-bottom: 12px; }
+    .empty-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .empty-sub { font-size: 12px; }
+
+    /* ── Loading spinner ── */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 13px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.25s;
+      z-index: 999;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ── Scrape sources toggles ── */
+    .scraper-panel { margin-bottom: 32px; }
+    .scraper-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 0 24px;
+    }
+    .scraper-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .scraper-row:last-child { border-bottom: none; }
+    .scraper-name { font-weight: 600; font-size: 14px; }
+    .scraper-key {
+      font-size: 10px;
+      font-family: var(--font);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 2px;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .switch .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 26px;
+      transition: 0.2s;
+    }
+    .switch .slider::before {
+      position: absolute;
+      content: '';
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: var(--muted);
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .switch input:checked + .slider {
+      background: rgba(124,106,247,0.35);
+      border-color: var(--accent);
+    }
+    .switch input:checked + .slider::before {
+      transform: translateX(18px);
+      background: var(--accent);
+    }
+    .switch input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🃏</div>
+    TCG Tracker
+  </div>
+  <div class="header-actions">
+    <div class="status-dot"></div>
+    <span class="status-label" id="last-scrape-label">Loading...</span>
+    <button class="scrape-btn" id="scrape-btn" onclick="triggerScrape()">
+      <span>Run Scrape Now</span>
+    </button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Stats row -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">In Stock Right Now</div>
+      <div class="stat-value green" id="stat-instock">—</div>
+      <div class="stat-sub">across all retailers</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Products Tracked</div>
+      <div class="stat-value purple" id="stat-products">—</div>
+      <div class="stat-sub" id="stat-products-sub">Loading...</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Retailers (enabled)</div>
+      <div class="stat-value" id="stat-retailers">—</div>
+      <div class="stat-sub" id="stat-retailers-sub">Loading...</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Scrape Schedule</div>
+      <div class="stat-value" style="font-size:22px;font-family:var(--font)">2 hrs</div>
+      <div class="stat-sub">automatic interval</div>
+    </div>
+  </div>
+
+  <!-- Enabled scrapers -->
+  <div class="log-panel scraper-panel">
+    <div class="section-header" style="margin-bottom:4px">
+      <span class="section-title">Scrape sources</span>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px">
+      Turn sites on or off. Scheduled and manual scrapes only run retailers that are enabled.
+    </p>
+    <div class="scraper-grid" id="scraper-toggles">
+      <span style="color:var(--muted);font-size:12px">Loading...</span>
+    </div>
+  </div>
+
+  <!-- Stock results -->
+  <div class="section-header">
+    <div class="stock-section-title-row">
+      <span class="section-title">Stock Results</span>
+      <button type="button" class="clear-stock-btn" id="clear-stock-btn" disabled onclick="clearAllStockResults()">Clear all</button>
+    </div>
+    <div class="filters" id="game-filters">
+      <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+      <button class="filter-btn" onclick="setFilter('pokemon', this)">Pokémon</button>
+      <button class="filter-btn" onclick="setFilter('onepiece', this)">One Piece</button>
+      <button class="filter-btn" onclick="setFilter('yugioh', this)">Yu-Gi-Oh</button>
+    </div>
+  </div>
+
+  <div class="stock-grid">
+    <table class="stock-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Game</th>
+          <th>Retailer</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Price</th>
+          <th>Checked</th>
+          <th>Link</th>
+        </tr>
+      </thead>
+      <tbody id="stock-tbody">
+        <tr><td colspan="8">
+          <div class="empty-state">
+            <div class="spinner" style="margin: 0 auto 12px;"></div>
+            <div>Loading stock data...</div>
+          </div>
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Bottom panels -->
+  <div class="two-col">
+
+    <!-- Tracked products -->
+    <div class="log-panel">
+      <div class="section-header" style="margin-bottom:12px">
+        <span class="section-title">Tracked Products</span>
+        <button class="scrape-btn" style="font-size:11px;padding:6px 12px" onclick="showAddProduct()">+ Add</button>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
+        Toggle off to pause scraping and in-stock alerts. Remove deletes the product and its scrape history. Search term is under each name.
+      </p>
+      <ul class="product-list" id="product-list">
+        <li style="color:var(--muted);font-size:12px;padding:8px 0">Loading...</li>
+      </ul>
+    </div>
+
+    <!-- Scrape log -->
+    <div class="log-panel">
+      <div class="section-header" style="margin-bottom:12px">
+        <span class="section-title">Scrape Log</span>
+      </div>
+      <ul class="log-list" id="log-list">
+        <li style="color:var(--muted);font-size:12px;padding:8px 0">Loading...</li>
+      </ul>
+    </div>
+
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const API = ''; // Same origin — dashboard is served by the same Express server
+
+  let allStockData = [];
+  let currentFilter = 'all';
+
+  // ── Load everything ──────────────────────────────────────────────────────
+
+  async function loadDashboard(refreshStaticLists = true) {
+    const tasks = [loadStockData(), loadLogs(), loadHealth()];
+    if (refreshStaticLists) {
+      tasks.push(loadProducts());
+      tasks.push(loadScraperSettings());
+    }
+    await Promise.all(tasks);
+  }
+
+  async function loadHealth() {
+    try {
+      const res = await fetch(`${API}/api/health`);
+      const { last_scrape, products_tracked, products_enabled_for_scrape } = await res.json();
+      document.getElementById('stat-products').textContent = products_tracked;
+      const total = products_tracked ?? 0;
+      const en = products_enabled_for_scrape ?? total;
+      const sub = document.getElementById('stat-products-sub');
+      if (total === 0) {
+        sub.textContent = 'add products to track';
+      } else if (en === total) {
+        sub.textContent = 'all enabled for scrapes';
+      } else {
+        sub.textContent = `${en} active · ${total - en} paused`;
+      }
+      const ago = last_scrape === 'never' ? 'Never scraped' : timeAgo(last_scrape);
+      document.getElementById('last-scrape-label').textContent = `Last scrape: ${ago}`;
+    } catch(e) {
+      document.getElementById('last-scrape-label').textContent = 'Server offline';
+    }
+  }
+
+  async function loadStockData() {
+    try {
+      const res = await fetch(`${API}/api/stock`);
+      const { data } = await res.json();
+      allStockData = data || [];
+      document.getElementById('stat-instock').textContent = allStockData.length;
+      document.getElementById('clear-stock-btn').disabled = allStockData.length === 0;
+      renderStockTable(allStockData);
+    } catch(e) {
+      document.getElementById('clear-stock-btn').disabled = true;
+      renderError('stock-tbody', 'Could not load stock data');
+    }
+  }
+
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  async function loadProducts() {
+    try {
+      const res = await fetch(`${API}/api/products`);
+      const { data } = await res.json();
+      const list = document.getElementById('product-list');
+      if (!data.length) {
+        list.innerHTML = '<li style="color:var(--muted);font-size:12px;padding:8px 0">No products tracked yet</li>';
+        return;
+      }
+      list.innerHTML = data.map(p => {
+        const on = p.enabled !== false;
+        return `
+        <li class="product-item ${on ? '' : 'product-item--paused'}">
+          <div class="product-item-body">
+            <div class="product-item-title-row">
+              <span style="font-weight:500">${escapeHtml(p.name)}</span>
+              <span class="game-tag ${escapeHtml(p.game)}">${escapeHtml(p.game)}</span>
+            </div>
+            <div class="product-search-term" title="${escapeHtml(p.search_term)}">${escapeHtml(p.search_term)}</div>
+          </div>
+          <div class="product-item-actions">
+            <button type="button" class="product-remove-btn" data-product-id="${p.id}" data-product-name="${escapeHtml(p.name)}" title="Stop tracking this product" onclick="removeProduct(this)">Remove</button>
+            <label class="switch" title="${on ? 'Pause scraping' : 'Enable for scrapes'}">
+              <input type="checkbox" data-product-id="${p.id}" ${on ? 'checked' : ''} onchange="onProductToggle(this)">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </li>`;
+      }).join('');
+    } catch(e) {}
+  }
+
+  async function onProductToggle(input) {
+    const id = input.dataset.productId;
+    const enabled = input.checked;
+    input.disabled = true;
+    try {
+      const res = await fetch(`${API}/api/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Save failed');
+      const li = input.closest('.product-item');
+      if (li) li.classList.toggle('product-item--paused', !enabled);
+      input.closest('label').title = enabled ? 'Pause scraping' : 'Enable for scrapes';
+      loadHealth();
+      showToast(enabled ? '✅ Product included in scrapes' : '⏸ Product paused (not scraped)');
+    } catch (e) {
+      input.checked = !enabled;
+      showToast('❌ Could not save');
+    } finally {
+      input.disabled = false;
+    }
+  }
+
+  async function removeProduct(btn) {
+    const id = btn.dataset.productId;
+    const name = btn.dataset.productName || 'this product';
+    if (!id) return;
+    if (!confirm(`Remove "${name}" from tracking? This deletes its stock history and cannot be undone.`)) {
+      return;
+    }
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${API}/api/products/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Remove failed');
+      showToast('🗑 Product removed');
+      await loadProducts();
+      loadHealth();
+      loadStockData();
+    } catch (e) {
+      showToast('❌ Could not remove product');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function updateRetailerStat(scrapers) {
+    const on = (scrapers || []).filter(s => s.enabled);
+    document.getElementById('stat-retailers').textContent = String(on.length);
+    const sub = document.getElementById('stat-retailers-sub');
+    sub.textContent = on.length
+      ? on.map(s => s.label).join(' · ')
+      : 'None enabled — turn on a source below';
+  }
+
+  async function loadScraperSettings() {
+    const wrap = document.getElementById('scraper-toggles');
+    try {
+      const res = await fetch(`${API}/api/scrapers`);
+      const json = await res.json();
+      const data = json.data || [];
+      updateRetailerStat(data);
+      if (!data.length) {
+        wrap.innerHTML = '<span style="color:var(--muted);font-size:12px">No scraper config</span>';
+        return;
+      }
+      wrap.innerHTML = data.map(s => `
+        <div class="scraper-row">
+          <div>
+            <div class="scraper-name">${s.label}</div>
+            <div class="scraper-key">${s.key}</div>
+          </div>
+          <label class="switch" title="Enable or disable ${s.label}">
+            <input type="checkbox" data-key="${s.key}" ${s.enabled ? 'checked' : ''} onchange="onScraperToggle(this)">
+            <span class="slider"></span>
+          </label>
+        </div>
+      `).join('');
+    } catch (e) {
+      wrap.innerHTML = '<span style="color:var(--danger);font-size:12px">Could not load scraper settings</span>';
+    }
+  }
+
+  async function onScraperToggle(input) {
+    const key = input.dataset.key;
+    const enabled = input.checked;
+    input.disabled = true;
+    try {
+      const res = await fetch(`${API}/api/scrapers`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: enabled }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Save failed');
+      if (json.data) updateRetailerStat(json.data);
+      showToast(enabled ? `✅ ${key} enabled for scrapes` : `⏸ ${key} disabled`);
+    } catch (e) {
+      input.checked = !enabled;
+      showToast('❌ Could not save setting');
+    } finally {
+      input.disabled = false;
+    }
+  }
+
+  async function loadLogs() {
+    try {
+      const res = await fetch(`${API}/api/logs`);
+      const { data } = await res.json();
+      const list = document.getElementById('log-list');
+      if (!data.length) {
+        list.innerHTML = '<li style="color:var(--muted);font-size:12px;padding:8px 0">No scrape logs yet — run a scrape first</li>';
+        return;
+      }
+      list.innerHTML = data.slice(0, 20).map(log => `
+        <li class="log-item">
+          <div class="log-dot ${log.status}"></div>
+          <span class="log-time">${timeAgo(log.ran_at)}</span>
+          <span class="log-msg">${log.retailer} — ${log.message || log.status}</span>
+        </li>
+      `).join('');
+    } catch(e) {}
+  }
+
+  // ── Render stock table ───────────────────────────────────────────────────
+
+  function renderStockTable(data) {
+    const tbody = document.getElementById('stock-tbody');
+
+    const filtered = currentFilter === 'all'
+      ? data
+      : data.filter(r => r.game === currentFilter);
+
+    if (!filtered.length) {
+      const noRows = !data.length;
+      const title = noRows ? 'No in-stock results' : 'No matches for this filter';
+      const sub = noRows
+        ? 'Run a scrape to populate this table. Clear all removes saved stock checks from the database.'
+        : 'Try another game filter or switch to All.';
+      tbody.innerHTML = `
+        <tr><td colspan="8">
+          <div class="empty-state">
+            <div class="empty-icon">${noRows ? '📦' : '🔎'}</div>
+            <div class="empty-title">${title}</div>
+            <div class="empty-sub">${sub}</div>
+          </div>
+        </td></tr>`;
+      return;
+    }
+
+    const retailerColors = {
+      target: '#cc0000',
+      walmart: '#0071ce',
+      bestbuy: '#003087',
+      amazon: '#ff9900',
+    };
+
+    tbody.innerHTML = filtered.map(r => `
+      <tr>
+        <td style="font-weight:500">${escapeHtml(r.product_name)}</td>
+        <td><span class="game-tag ${r.game}">${r.game}</span></td>
+        <td>
+          <span class="retailer-logo" style="color:${retailerColors[r.retailer] || 'var(--text)'}">
+            ${r.retailer.charAt(0).toUpperCase() + r.retailer.slice(1)}
+          </span>
+        </td>
+        <td><span class="badge ${r.store_type === 'online' ? 'online' : 'in-store'}">${r.store_type === 'online' ? '🌐 Online' : '🏪 In Store'}</span></td>
+        <td><span class="badge ${r.in_stock ? 'in-stock' : 'out-stock'}">${r.in_stock ? '✓ In Stock' : '✗ Out of Stock'}</span></td>
+        <td class="price">${r.price || '—'}</td>
+        <td style="color:var(--muted);font-size:11px">${timeAgo(r.checked_at)}</td>
+        <td>${r.url ? `<a class="link-btn" href="${r.url}" target="_blank">View →</a>` : '—'}</td>
+      </tr>
+    `).join('');
+  }
+
+  function setFilter(game, btn) {
+    currentFilter = game;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderStockTable(allStockData);
+  }
+
+  async function clearAllStockResults() {
+    if (!confirm('Clear all stock results from the database? Tracked products stay; scrape history for stock checks is removed. This cannot be undone.')) {
+      return;
+    }
+    const btn = document.getElementById('clear-stock-btn');
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${API}/api/stock`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Clear failed');
+      showToast(json.deleted ? `🗑 Cleared ${json.deleted} row(s)` : '🗑 Stock results cleared');
+      await loadStockData();
+    } catch (e) {
+      showToast('❌ Could not clear stock results');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Trigger manual scrape ────────────────────────────────────────────────
+
+  async function triggerScrape() {
+    const btn = document.getElementById('scrape-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span><span>Starting...</span>';
+
+    try {
+      const res = await fetch(`${API}/api/scrape/run`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({}) });
+      const data = await res.json();
+      showToast('✅ Scrape started! Results will appear in a few minutes.');
+      // Reload data after 5 seconds
+      setTimeout(() => loadDashboard(false), 5000);
+    } catch(e) {
+      showToast('❌ Could not connect to server');
+    } finally {
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Run Scrape Now</span>';
+      }, 3000);
+    }
+  }
+
+  function showAddProduct() {
+    const name = prompt('Product name (e.g. "Surging Sparks Booster Box"):');
+    if (!name) return;
+    const game = prompt('Game (pokemon / onepiece / yugioh):');
+    if (!game) return;
+    const term = prompt('Search term (what to search on retail sites):');
+    if (!term) return;
+
+    fetch(`${API}/api/products`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, game: game.toLowerCase(), search_term: term }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showToast('✅ Product added!');
+        loadProducts();
+      }
+    });
+  }
+
+  // ── Utilities ────────────────────────────────────────────────────────────
+
+  function timeAgo(dateStr) {
+    if (!dateStr) return 'never';
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1)  return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24)  return `${hrs}h ago`;
+    return `${Math.floor(hrs/24)}d ago`;
+  }
+
+  function renderError(id, msg) {
+    document.getElementById(id).innerHTML = `
+      <tr><td colspan="8" style="color:var(--danger);padding:24px;text-align:center">${msg}</td></tr>`;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  // ── Auto-refresh every 30s (skip re-building product + scraper toggles) ──
+  loadDashboard(true);
+  setInterval(() => loadDashboard(false), 30000);
+</script>
+</body>
+</html>
